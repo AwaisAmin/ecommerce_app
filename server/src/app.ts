@@ -8,7 +8,7 @@ import morgan from 'morgan';
 import helmet from 'helmet';
 import compression from 'compression';
 import logger from './middlewares/logger.middleware';
-// import authRoutes from './routes/auth.route';
+import authRoutes from './routes/auth.route';
 
 // Load environment variables
 dotenv.config();
@@ -31,15 +31,15 @@ const limiter = rateLimit({
 app.use(limiter);
 
 // Logging
-app.use(morgan('combined')); // Use morgan for logging HTTP requests
-// app.use(logger); // Custom logger middleware
+// app.use(morgan('combined')); // Use morgan for logging HTTP requests
+app.use(logger); // Custom logger middleware
 
 // Security
 app.use(helmet()); // Secure your app with HTTP headers
 app.use(compression());
 
 // Routes
-// app.use('/api/auth', authRoutes);
+app.use('/api/auth', authRoutes);
 
 export const startServer = async () => {
   try {
