@@ -38,13 +38,13 @@ export class AuthController {
   static async forgotPassword(req: Request, res: Response, next: NextFunction) {
     try {
       const { email } = req.body;
-      const isEmailSent = await AuthService.forgotPassword(email);
+      const { isEmailSent, resetToken } = await AuthService.forgotPassword(email);
 
       if (!isEmailSent) {
         return next(new AppError('User not found with that email', 404));
       }
 
-      res.status(200).json({ message: 'Reset password email sent.' });
+      res.status(200).json({ message: 'Reset password email sent.', token: resetToken });
     } catch (error) {
       next(new AppError('Error processing password reset request', 500));
     }
@@ -52,9 +52,10 @@ export class AuthController {
 
   static async resetPassword(req: Request, res: Response, next: NextFunction) {
     try {
-      const { token } = req.params;
+      const { token } = req.query;
       const { newPassword } = req.body;
-      await AuthService.resetPassword(token, newPassword);
+      console.log(`reset password ${newPassword} - ${token}`);
+      await AuthService.resetPassword(token as string, newPassword);
       res.status(200).json({ message: 'Password reset successfully.' });
     } catch (error) {
       next(new AppError('Failed to reset password', 400));

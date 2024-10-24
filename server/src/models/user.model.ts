@@ -27,11 +27,7 @@ const userSchema = new Schema<IUser>(
     googleId: { type: String },
     otp: { type: String },
   },
-  {
-    toObject: {
-      versionKey: false, // Do not include the __v field
-    },
-  },
+  { versionKey: false },
 );
 
 export const User = model<IUser>('User', userSchema);

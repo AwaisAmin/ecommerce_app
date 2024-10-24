@@ -12,7 +12,7 @@ export const sendResetPasswordEmail = async (email: string, token: string) => {
     },
   });
 
-  const resetPasswordUrl = `http://localhost:3000/reset-password?token=${token}`;
+  const resetPasswordUrl = `http://localhost:4000/api/auth/reset-password?token=${token}`;
 
   const mailOptions = {
     from: process.env.EMAIL_USER,

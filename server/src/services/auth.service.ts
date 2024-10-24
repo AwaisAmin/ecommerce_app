@@ -59,18 +59,21 @@ export class AuthService {
     await transporter.sendMail(mailOptions);
   }
 
-  static async forgotPassword(email: string): Promise<boolean> {
+  static async forgotPassword(
+    email: string,
+  ): Promise<{ isEmailSent: boolean; resetToken?: string }> {
     const user = await User.findOne({ email });
-    if (!user) return false;
+    if (!user) return { isEmailSent: false };
 
-    // Generate a reset token that expires in 1 hour
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET!, { expiresIn: '1h' });
+    const resetToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET!, { expiresIn: '1h' });
+    await sendResetPasswordEmail(email, resetToken);
 
-    await sendResetPasswordEmail(email, token);
-    return true;
+    return { isEmailSent: true, resetToken };
   }
 
   static async resetPassword(token: string, newPassword: string) {
+    console.log(`At reset password ${newPassword} - ${token}`);
+
     const user = await User.findOne({ otp: token });
     if (!user) throw new Error('Invalid or expired token');
 
