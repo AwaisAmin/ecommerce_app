@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
 import crypto from 'crypto';
 import { sendResetPasswordEmail } from '../utils/email.utils';
+import { generateAccessToken, generateRefreshToken } from '../utils/token.utils';
 
 export class AuthService {
   static async register(email: string, password: string, role: UserRole = UserRole.Customer) {
@@ -22,17 +23,45 @@ export class AuthService {
     return user;
   }
 
-  static async login(email: string, password: string) {
-    const user = await User.findOne({ email });
+  static async login(email: string, password: string, ip: string, userAgent: string) {
+    const user = (await User.findOne({ email })) as IUser | null;
     if (!user) throw new Error('User not found');
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) throw new Error('Invalid credentials');
 
-    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET!, {
-      expiresIn: '1h',
-    });
-    return { token, user };
+    const token = generateAccessToken(user._id.toString(), user.role, ip, userAgent);
+    const refreshToken = generateRefreshToken(user._id.toString(), ip, userAgent);
+
+    return { token, refreshToken, user };
+  }
+
+  static async refreshToken(refreshToken: string) {
+    if (!refreshToken) throw new Error('Refresh token required');
+
+    let payload;
+    try {
+      payload = jwt.verify(refreshToken, process.env.JWT_SECRET!) as any;
+    } catch (error) {
+      throw new Error('Invalid refresh token');
+    }
+
+    const user = await User.findById(payload.id);
+    if (!user) throw new Error('User not found');
+
+    const token = generateAccessToken(
+      user._id.toString(),
+      user.role,
+      payload.ip,
+      payload.userAgent,
+    );
+    const newRefreshToken = generateRefreshToken(
+      user._id.toString(),
+      payload.ip,
+      payload.userAgent,
+    );
+
+    return { token, newRefreshToken };
   }
 
   static async sendVerificationEmail(user: IUser) {
@@ -72,13 +101,11 @@ export class AuthService {
   }
 
   static async resetPassword(token: string, newPassword: string) {
-    console.log(`At reset password ${newPassword} - ${token}`);
-
     const user = await User.findOne({ otp: token });
     if (!user) throw new Error('Invalid or expired token');
 
     user.password = await bcrypt.hash(newPassword, 10);
-    user.otp = undefined; // Clear the token
+    user.otp = undefined;
     await user.save();
   }
 

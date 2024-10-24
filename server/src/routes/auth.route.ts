@@ -9,5 +9,7 @@ router.post('/login', AuthController.login);
 router.post('/forgot-password', AuthController.forgotPassword);
 router.post('/reset-password/:token', AuthController.resetPassword);
 router.post('/google-login', AuthController.googleLogin);
+router.post('/refresh-token', AuthController.refreshToken);
+router.post('/logout', AuthController.logout);
 
 export default router;

@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import morgan from 'morgan';
 import helmet from 'helmet';
@@ -22,6 +23,7 @@ const port = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 // Rate limiting
 const limiter = rateLimit({
@@ -35,12 +37,13 @@ app.use(limiter);
 app.use(logger); // Custom logger middleware
 
 // Security
-app.use(helmet()); // Secure your app with HTTP headers
+app.use(helmet());
 app.use(compression());
 
 // Routes
 app.use('/api/auth', authRoutes);
 
+// Server
 export const startServer = async () => {
   try {
     await mongoose.connect(process.env.MONGODB_URI as string);

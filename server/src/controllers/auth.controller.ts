@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { AuthService } from '../services/auth.service';
-import { AppError } from '../utils/AppError'; // Assuming you have a custom AppError class
+import { AppError } from '../utils/AppError';
+import { setRefreshTokenCookie } from '../utils/token.utils';
 
 export class AuthController {
   static async register(req: Request, res: Response, next: NextFunction) {
@@ -28,10 +29,39 @@ export class AuthController {
   static async login(req: Request, res: Response, next: NextFunction) {
     try {
       const { email, password } = req.body;
-      const result = await AuthService.login(email, password);
-      res.status(200).json(result);
+      const ip: string | undefined = req.ip;
+      const userAgent: string = req.headers['user-agent'] || '';
+      const result = await AuthService.login(email, password, ip!, userAgent);
+      setRefreshTokenCookie(res, result.refreshToken);
+      res.status(200).json({ token: result.token, user: result.user });
     } catch (error) {
       next(new AppError('Invalid login credentials', 400));
+    }
+  }
+
+  static async logout(req: Request, res: Response, next: NextFunction) {
+    try {
+      res.clearCookie('refreshToken', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+      });
+
+      res.status(200).json({ message: 'Logged out successfully' });
+    } catch (error) {
+      next(new AppError('Failed to log out', 500));
+    }
+  }
+
+  static async refreshToken(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { refreshToken } = req.cookies;
+      const { token, newRefreshToken } = await AuthService.refreshToken(refreshToken);
+      setRefreshTokenCookie(res, newRefreshToken);
+
+      res.status(200).json({ token });
+    } catch (error) {
+      next(new AppError('Failed to refresh token', 400));
     }
   }
 
@@ -54,7 +84,6 @@ export class AuthController {
     try {
       const { token } = req.query;
       const { newPassword } = req.body;
-      console.log(`reset password ${newPassword} - ${token}`);
       await AuthService.resetPassword(token as string, newPassword);
       res.status(200).json({ message: 'Password reset successfully.' });
     } catch (error) {
