@@ -2,6 +2,8 @@ import { Request, Response, NextFunction } from 'express';
 import { AuthService } from '../services/auth.service';
 import { AppError } from '../utils/AppError';
 import { setRefreshTokenCookie } from '../utils/token.utils';
+import { JwtPayload } from 'jsonwebtoken';
+import { AuthenticatedRequest } from '../middlewares/auth.middleware';
 
 export class AuthController {
   static async register(req: Request, res: Response, next: NextFunction) {
@@ -88,6 +90,16 @@ export class AuthController {
       res.status(200).json({ message: 'Password reset successfully.' });
     } catch (error) {
       next(new AppError('Failed to reset password', 400));
+    }
+  }
+
+  // profile
+  static async getProfile(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+      const user = req.user;
+      res.status(200).json({ message: 'User profile', user });
+    } catch (error) {
+      next(new AppError('Failed to get profile', 500));
     }
   }
 

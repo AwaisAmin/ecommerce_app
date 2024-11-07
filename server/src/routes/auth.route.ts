@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { AuthController } from '../controllers/auth.controller';
+import { authenticateJWT } from '../middlewares/auth.middleware';
 
 const router = Router();
 
@@ -11,5 +12,8 @@ router.post('/reset-password/:token', AuthController.resetPassword);
 router.post('/google-login', AuthController.googleLogin);
 router.post('/refresh-token', AuthController.refreshToken);
 router.post('/logout', AuthController.logout);
+
+// Protected routes
+router.get('/profile', authenticateJWT, AuthController.getProfile);
 
 export default router;
